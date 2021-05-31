@@ -21,6 +21,7 @@ A CLI for performing encryption on local files
   </ul>
 </p>
 
+<b>USEFUL NOTES</b>
 <p>After every encryption/decryption, a "keys" file is generated in the same output folder. The file contains details regarding the process including the keys</p>
 <p>A settings file is also there which has several parameters you can tweak with. It's in a simple JSON format so is highly readable. Even if you delete the settings file, it will be generated again with the default settings. Enjoy.</p>
 
