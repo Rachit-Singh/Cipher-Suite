@@ -5,6 +5,16 @@ A CLI for performing encryption on local files
 
 <p>It provides an extremely user-friendly CLI that anyone can understand (A basic knowledge of ciphers may be required, like for RSA) </p>
 
+<p>Encryption Algorithms supported: <br>
+  <ul>
+    <li>Caesar cipher</li>
+    <li>Vernam cipher</li>
+    <li>Hill cipher</li>
+    <li>Keyless/Column Transposition cipher</li>
+    <li>RSA</li>
+  </ul>
+</p>
+
 <p>File types supported : <br>
   <ul>
     <li>Any file </li>
