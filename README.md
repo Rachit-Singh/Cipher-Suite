@@ -1,9 +1,7 @@
 # Cipher-Suite
 A CLI for performing encryption on local files
 
-<p>Welcome to Cipher Suite, a way one stop for encrypting your local files. Why do that you ask? I say just for fun.</p>
-
-<p>It provides an extremely user-friendly CLI that anyone can understand (A basic knowledge of ciphers may be required, like for RSA) </p>
+<p>Welcome to Cipher Suite, a way one stop for encrypting your local files. Why do that you ask? I say just for fun. It provides an extremely user-friendly CLI that anyone can understand (A basic knowledge of ciphers may be required, like for RSA) </p>
 
 <p>Encryption Algorithms supported: <br>
   <ul>
