@@ -29,8 +29,12 @@ A CLI for performing encryption on local files
   </ul>
 </p>
 
-<b><i><u>USEFUL NOTES</u></i></b>
-<p>After every encryption/decryption, a "keys" file is generated in the same output folder. The file contains details regarding the process including the keys</p>
-<p>A settings file is also there which has several parameters you can tweak with. It's in a simple JSON format so is highly readable. Even if you delete the settings file, it will be generated again with the default settings. Enjoy.</p>
+<h3>Features</h3>
+<ul>
+  <li>After every encryption/decryption, a "keys" file is generated in the same output folder. The file contains details regarding the process including the keys</li>
+  <li>This keys file can be locked inside a locker folder with a password. Pretty cool.</li>
+  <li>The keys file is by default made read-only to avoid any accidental changes.</li>
+  <li>A settings file is also there which has several parameters you can tweak with. It's in a simple JSON format so is highly readable. Even if you delete the settings file, it will be generated again with the default settings. Enjoy.</li>
+</ul>
 
 <p>I made this just for fun. Had a lot of time to kill after placements and was bored to death watching YouTube. So the code is not highly optimized and may look like a spaghetti code. I highly appreciate if you can expand on this idea. I personally found this pretty cool.</p>
