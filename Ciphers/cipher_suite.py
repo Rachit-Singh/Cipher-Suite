@@ -1,16 +1,12 @@
 #! python
 
-import os
-import platform
+import os, sys, stat, platform, glob
 import re
 from datetime import datetime
-import zipfile
-import json
+import zipfile, json
 import getpass
 import time
 import warnings
-import glob
-import sys
 
 # self created modules
 import symmetric_cipher as sc
@@ -39,12 +35,6 @@ def package_check() :
     except ImportError:
         count += 1
         packs += " pyfiglet "
-
-    try :
-        import keyboard
-    except ImportError:
-        count += 1
-        packs += " keyboard "
     
     if count > 0 :
         if input(f"{count} packages ({packs}) need to be installed. Install (y/N)?\t").lower() == "y" :
@@ -65,10 +55,13 @@ def settings() :
     if not os.path.exists(setting_file_name) :
         setting_dic = {   
             "multiple_runs" : True,
-            "maximize_terminal_window" : True,
             "password_protected_zip" : True,
             "zip_compression_level" : 5,
             "ignore_keys_file_while_decryting" : True,
+            "make_key_file_readOnly_by_owner" : True,
+
+            "__comment1__" : "Below setting currently only works on Windows",
+            "password_protect_the_key_file" : True,
             
             "__comment__" : "Below setting are only applicable if you are planning to work with a zip file",
             "keep_key_file_inside_zip" : False,
@@ -81,17 +74,55 @@ def settings() :
     return json.load(open(setting_file_name))
 
 
-def key_file(new_folder, msg) :
-    with open(os.path.join(new_folder, "keys.txt"), "w") as f :
-        f.write(msg)
+def key_file(new_folder, msg, sett=None, os_name="Windows", arg=1) :
+
+    # key file password protection
+    if arg and sett["password_protect_the_key_file"] and os_name == "Windows":
+        # read the content of the batch file
+        with open("password_protection.txt") as f :
+            string = f.read()
+        # ask for a password
+        if input("\nWant to password protect the keys file (y/N)?\t").lower() == "y" :
+            passwd = getpass.getpass("Enter password for keys file: ")
+            string = string.replace("{password_here}", passwd)
+
+            # create the batch file 
+            with open(os.path.join(new_folder, "lock_unlock_keys.bat"), "w") as f :
+                f.write(string)
+
+            # create the locker folder
+            locker_path = os.path.join(new_folder, "Locker")
+            os.system(f"mkdir {locker_path}")
+
+            # make the key file inside this locker folder
+            keys_path = os.path.join(locker_path, "keys.txt")
+            with open(keys_path, "w") as f :
+                f.write(msg)
+            if sett["make_key_file_readOnly_by_owner"] :
+                os.chmod(keys_path, stat.S_IREAD)  # make it read-only
+            
+            # now lock the folder
+            # first change the current directory
+            os.chdir(new_folder)
+            # lock the folder
+            os.system('ren Locker "Control Panel.{21EC2020-3AEA-1069-A2DD-08002B30309D}"')
+            os.system('attrib +h +s "Control Panel.{21EC2020-3AEA-1069-A2DD-08002B30309D}"')
+
+            # make the file readOnly by owner
+            print("Keys file protected in the Locker folder. Access it by running 'lock_unlock.bat' file and entering the password provided")
+
+    else :
+        keys_path = os.path.join(new_folder, "keys.txt")
+        with open(keys_path, "w") as f :
+            f.write(msg)
+        if sett["make_key_file_readOnly_by_owner"] :
+            os.chmod(keys_path, stat.S_IREAD)
 
 
 def home_page(sett):
-    clear()
 
-    if sett["maximize_terminal_window"] :
-        # maximize screen
-        keyboard.press("win + up")
+    os_name = platform.system()
+    clear()
 
     width = os.get_terminal_size().columns
     print("-"*width + "\n" + pyfiglet.figlet_format("CIPHER SUITE", font = "slant", justify="center") + "\n" + "-"*width)
@@ -117,15 +148,15 @@ def home_page(sett):
     algo = int(input("\n\nYour choice:\t"))
 
     print(f"You chose {algos[algo-1]}")
-    
-    # make a new folder with the name encrypted
+
+    # make a new folder with the name encryption/decryption
     dateTime = datetime.now()
     # start time and date for file name
     Date, start_time = dateTime.strftime("%d%b%Y"), dateTime.strftime("%H_%M_%S")
-    # filename for the csv file
+    # folder name
     new_folder_basename = ("encryption_" if choose == "e" else "decryption_") + Date + "@" + start_time 
     new_folder = os.path.join(os.path.dirname(Files[0]), new_folder_basename)
-    os.system(f"mkdir {new_folder}")  
+    os.system(f"mkdir {new_folder}")
 
     # message to be written in the keys file
     msg = "-"*100 + "\n" + pyfiglet.figlet_format("KEYS", font = "slant", justify="center") + "\n" + "-"*100
@@ -142,7 +173,6 @@ def home_page(sett):
             extras += list(glob.glob(file))   # get all the files corresponding to that wildcard
             Files.remove(file)    # remove that wildcard file name from the list
     Files += extras
-
 
     for file in Files :
         # ignore the keys file while decrypting
@@ -256,14 +286,13 @@ def home_page(sett):
     if sett["password_protected_zip"] :
         ask = input("\nWant to create a password protected zip file (y/N)?\t").lower()
 
-
         if ask == "y" :
-
             passwd = getpass.getpass("Enter password: ")
 
             if sett["keep_key_file_inside_zip"] :
                 msg += f"\nEncrypted zipped folder path: {new_folder}.zip"
-                key_file(new_folder, msg)
+                key_file(new_folder, msg, sett=sett, arg=0)
+                #key_file(new_folder, msg, sett["make_key_file_readOnly_by_owner"])
 
             zipped_files = [os.path.join(new_folder, i) for i in files]
             pyminizip.compress_multiple(new_names, [], new_folder+".zip", passwd, sett["zip_compression_level"])
@@ -271,7 +300,7 @@ def home_page(sett):
             print(f"\n{new_folder}.zip created. Don't forget the password. It will not be there in the key file.")
 
             try :
-                os.system(f"rmdir /Q /S {new_folder}") if platform.system() == "Windows" else os.system(f"rm -rf {new_folder}")  # delete the new_folder created
+                os.system(f"rmdir /Q /S {new_folder}") if os_name == "Windows" else os.system(f"rm -rf {new_folder}")  # delete the new_folder created
             except :
                 print("Can't remove the unprotected folder. Please make sure to do that manually.")
 
@@ -285,21 +314,27 @@ def home_page(sett):
                 msg += f"\nEncrypted folder path: {new_folder}\nProtected zip path: {os.path.join(new_folder, new_folder_basename)}"
         
                 os.system(f"mkdir {new_folder}")  # create the folder again
-                key_file(new_folder, msg)
+                key_file(new_folder, msg, sett, os_name=os_name, arg=1)
 
-                if platform.system() == "Windows" :
+                if os_name == "Windows" :
                     move_cmd, prompt = "move", "/Y"  # prompt is for force moving the files 
                 else :
                     move_cmd, prompt = "mv", ""  
 
                 os.system(f"{move_cmd} {prompt} {new_folder}.zip {new_folder}")
-
-            time.sleep(sett["sleep_time_(sec)"])
-
-        else :
+        
+        else:
             msg += f"\nEncrypted folder path: {new_folder}"
             # writing the keys file
-            key_file(new_folder, msg)
+            key_file(new_folder, msg, sett, os_name=os_name, arg=1)
+
+
+    else:
+        msg += f"\nEncrypted folder path: {new_folder}"
+        # writing the keys file
+        key_file(new_folder, msg, sett, os_name=os_name, arg=1)
+
+    time.sleep(sett["sleep_time_(sec)"])
 
 
 if __name__ == "__main__":   
@@ -316,8 +351,7 @@ if __name__ == "__main__":
 
     import pyminizip 
     import pyfiglet
-    import keyboard
-
+    
     warnings.filterwarnings("ignore", category=DeprecationWarning)  # ignore the Deprecation warning raised by pyminizip while uncompressing zip
     dic = settings()
     
@@ -325,7 +359,7 @@ if __name__ == "__main__":
         home_page(dic)
 
         # ask for once more only if multiple_run is toogled on in settings
-        again = "n" if dic["multiple_runs"] else input(f"\nWant to do more (y/N)?").lower()
+        again = "n" if not dic["multiple_runs"] else input(f"\nWant to do more (y/N)?").lower()
 
         if again == "n" :
             clear()

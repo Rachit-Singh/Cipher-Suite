@@ -1,11 +1,14 @@
-{   
-    "multiple_runs" : true,
-    "maximize_terminal_window" : false,
-    "password_protected_zip" : true,
-    "zip_compression_level" : 5,
-    "ignore_keys_file_while_decryting" : true,
-
-    "__comment__" : "Below setting are only applicable if you are planning to work with a zip file",
-    "keep_key_file_inside_zip" : false,
-    "sleep_time_(sec)" : 5
+{
+    "multiple_runs": true, 
+    "password_protected_zip": true, 
+    "zip_compression_level": 5, 
+    "ignore_keys_file_while_decryting": true, 
+    "make_key_file_readOnly_by_owner" : true,
+    
+    "__comment1__": "Below setting currently only works on Windows", 
+    "password_protect_the_key_file": true, 
+    
+    "__comment__": "Below setting are only applicable if you are planning to work with a zip file", 
+    "keep_key_file_inside_zip": false, 
+    "sleep_time_(sec)": 5
 }
