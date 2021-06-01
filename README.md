@@ -26,6 +26,7 @@ A CLI for performing encryption on local files
   <ul>
     <li>All files in a folder</li>
     <li>All files in a zipped file (which can be password protected) </li>
+    <li>All processed files in zipped file and a separate keys file for easy access</li>
   </ul>
 </p>
 
