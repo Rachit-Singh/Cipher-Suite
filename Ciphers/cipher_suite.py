@@ -65,7 +65,6 @@ def settings() :
             
             "__comment__" : "Below setting are only applicable if you are planning to work with a zip file",
             "keep_key_file_inside_zip" : False,
-            "sleep_time_(sec)" : 5
         }
         with open(setting_file_name, "w") as f :
             f.write(json.dumps(setting_dic))
@@ -86,9 +85,15 @@ def key_file(new_folder, msg, sett=None, os_name="Windows", arg=1) :
             passwd = getpass.getpass("Enter password for keys file: ")
             string = string.replace("{password_here}", passwd)
 
-            # create the batch file 
-            with open(os.path.join(new_folder, "lock_unlock_keys.bat"), "w") as f :
+            # create the batch file in the current folder only, then obfuscate the file and move it to the new_folder
+            #bat_path = os.path.join(new_folder, "lock_unlock_keys.bat")
+            with open("lock_unlock_keys.bat", "w") as f :
                 f.write(string)
+            os.system("obfuscate.bat lock_unlock_keys.bat")          
+            # move the folder
+            os.system(f"move /Y lock_unlock_keys.obf.bat {new_folder}")
+            # delete the older batch file
+            os.system("del lock_unlock_keys.bat")
 
             # create the locker folder
             locker_path = os.path.join(new_folder, "Locker")
@@ -98,6 +103,7 @@ def key_file(new_folder, msg, sett=None, os_name="Windows", arg=1) :
             keys_path = os.path.join(locker_path, "keys.txt")
             with open(keys_path, "w") as f :
                 f.write(msg)
+            
             if sett["make_key_file_readOnly_by_owner"] :
                 os.chmod(keys_path, stat.S_IREAD)  # make it read-only
             
@@ -109,7 +115,7 @@ def key_file(new_folder, msg, sett=None, os_name="Windows", arg=1) :
             os.system('attrib +h +s "Control Panel.{21EC2020-3AEA-1069-A2DD-08002B30309D}"')
 
             # make the file readOnly by owner
-            print("Keys file protected in the Locker folder. Access it by running 'lock_unlock.bat' file and entering the password provided")
+            print("Keys file protected in the Locker folder. Access it by running 'lock_unlock_keys.bat' file and entering the password provided")
 
     else :
         keys_path = os.path.join(new_folder, "keys.txt")
@@ -333,8 +339,6 @@ def home_page(sett):
         msg += f"\nEncrypted folder path: {new_folder}"
         # writing the keys file
         key_file(new_folder, msg, sett, os_name=os_name, arg=1)
-
-    time.sleep(sett["sleep_time_(sec)"])
 
 
 if __name__ == "__main__":   
