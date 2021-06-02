@@ -115,7 +115,7 @@ def key_file(new_folder, msg, sett=None, os_name="Windows", arg=1) :
             os.system('attrib +h +s "Control Panel.{21EC2020-3AEA-1069-A2DD-08002B30309D}"')
 
             # make the file readOnly by owner
-            print("Keys file protected in the Locker folder. Access it by running 'lock_unlock_keys.bat' file and entering the password provided")
+            print("Keys file protected in the Locker folder. Access it by running 'lock_unlock_keys.obf.bat' file and entering the password provided")
 
     else :
         keys_path = os.path.join(new_folder, "keys.txt")
