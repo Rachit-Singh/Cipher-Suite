@@ -33,8 +33,9 @@ A CLI for performing encryption on local files
 <h3>Features</h3>
 <ul>
   <li>After every encryption/decryption, a "keys" file is generated in the same output folder. The file contains details regarding the process including the keys</li>
-  <li>This keys file can be locked inside a locker folder with a password. Pretty cool.</li>
+  <li>This keys file can be locked inside a locker folder with a password. Pretty cool. Only for Windows currently though :(</li>
   <li>The keys file is by default made read-only to avoid any accidental changes.</li>
+  <li>The batch file created for locking/unlocking keys file is obfuscated automatically to prevent anyone from reading the password.</li>
   <li>A settings file is also there which has several parameters you can tweak with. It's in a simple JSON format so is highly readable. Even if you delete the settings file, it will be generated again with the default settings. Enjoy.</li>
 </ul>
 
