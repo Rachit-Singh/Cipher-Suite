@@ -55,6 +55,7 @@ def settings() :
     if not os.path.exists(setting_file_name) :
         setting_dic = {   
             "multiple_runs" : True,
+            "figlet_styled_titles" : True,
             "password_protected_zip" : True,
             "zip_compression_level" : 5,
             "ignore_keys_file_while_decryting" : True,
@@ -130,8 +131,14 @@ def home_page(sett):
     os_name = platform.system()
     clear()
 
+    # if the titles need to be figlets or not
+    if sett["figlet_styled_titles"] :
+        titles = [pyfiglet.figlet_format("CIPHER SUITE", font = "slant", justify="center"), pyfiglet.figlet_format("KEYS", font = "slant", justify="center")]
+    else :
+        titles = ["CIPHER SUITE", "KEYS"]
+
     width = os.get_terminal_size().columns
-    print("-"*width + "\n" + pyfiglet.figlet_format("CIPHER SUITE", font = "slant", justify="center") + "\n" + "-"*width)
+    print("-"*width + "\n" + titles[0] + "\n" + "-"*width)
 
     choose = input("\nEncryption(e)/Decryption(d)?\t").lower()
     verb = "encrypted" if choose == "e" else "decrypted"   # for displaying message
@@ -165,7 +172,7 @@ def home_page(sett):
     os.system(f"mkdir {new_folder}")
 
     # message to be written in the keys file
-    msg = "-"*100 + "\n" + pyfiglet.figlet_format("KEYS", font = "slant", justify="center") + "\n" + "-"*100
+    msg = "-"*100 + "\n" + titles[1] + "\n" + "-"*100
     msg += f"\n\nFiles {verb}:\n"
 
 

@@ -1,5 +1,6 @@
 {
     "multiple_runs": true, 
+    "figlet_styled_titles" : true,
     "password_protected_zip": true, 
     "zip_compression_level": 5, 
     "ignore_keys_file_while_decryting": true, 
