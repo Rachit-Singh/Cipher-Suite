@@ -3,7 +3,7 @@
     "figlet_styled_titles" : true,
     "password_protected_zip": true, 
     "zip_compression_level": 5, 
-    "ignore_keys_file_while_decryting": true, 
+    "ignore_files_while_decryting": ["keys.txt", "obfuscate.bat"], 
     "make_key_file_readOnly_by_owner" : true,
     
     "__comment1__": "Below setting currently only works on Windows", 

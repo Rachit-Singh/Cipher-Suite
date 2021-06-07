@@ -58,7 +58,7 @@ def settings() :
             "figlet_styled_titles" : True,
             "password_protected_zip" : True,
             "zip_compression_level" : 5,
-            "ignore_keys_file_while_decryting" : True,
+            "ignore_files_while_decryting": ["keys.txt", "obfuscate.bat"], 
             "make_key_file_readOnly_by_owner" : True,
 
             "__comment1__" : "Below setting currently only works on Windows",
@@ -74,15 +74,17 @@ def settings() :
     return json.load(open(setting_file_name))
 
 
-def key_file(new_folder, msg, sett=None, os_name="Windows", arg=1) :
+def key_file(new_folder, msg, protected_keys=None, sett=None, os_name="Windows", arg=1) :
 
     # key file password protection
-    if arg and sett["password_protect_the_key_file"] and os_name == "Windows":
+    if arg and ( sett["password_protect_the_key_file"] or protected_keys == "y" ) and os_name == "Windows":
         # read the content of the batch file
         with open("password_protection.txt") as f :
             string = f.read()
         # ask for a password
-        if input("\nWant to password protect the keys file (y/N)?\t").lower() == "y" :
+        if protected_keys is None :
+            protected_keys = input("\nWant to password protect the keys file (y/N)?\t").lower()
+        if  protected_keys == "y" :
             passwd = getpass.getpass("Enter password for keys file: ")
             string = string.replace("{password_here}", passwd)
 
@@ -126,41 +128,10 @@ def key_file(new_folder, msg, sett=None, os_name="Windows", arg=1) :
             os.chmod(keys_path, stat.S_IREAD)
 
 
-def home_page(sett):
-
+def process(sett, choose, algo, Files, ask=None, protected_keys=None):
     os_name = platform.system()
-    clear()
 
-    # if the titles need to be figlets or not
-    if sett["figlet_styled_titles"] :
-        titles = [pyfiglet.figlet_format("CIPHER SUITE", font = "slant", justify="center"), pyfiglet.figlet_format("KEYS", font = "slant", justify="center")]
-    else :
-        titles = ["CIPHER SUITE", "KEYS"]
-
-    width = os.get_terminal_size().columns
-    print("-"*width + "\n" + titles[0] + "\n" + "-"*width)
-
-    choose = input("\nEncryption(e)/Decryption(d)?\t").lower()
     verb = "encrypted" if choose == "e" else "decrypted"   # for displaying message
-
-    # getting file names
-    Files = []
-    print("\nFile names: (Enter q to mark end)")
-    while 1 :
-        file_name = input()
-        if file_name in ["q", "Q"] :
-            break
-        Files.append(file_name)
-
-    # getting algorithm
-    algos = ["Caesar", "Vernam", "Hill cipher", "Keyless Transposition", "Column Transposition", "RSA (Your own public key)", "RSA (new key pairs)"]
-    print("\nEncryption Algorithm?")
-    for idx, algo in enumerate(algos) :
-        print(f"{idx+1}. {algo}")
-
-    algo = int(input("\n\nYour choice:\t"))
-
-    print(f"You chose {algos[algo-1]}")
 
     # make a new folder with the name encryption/decryption
     dateTime = datetime.now()
@@ -170,9 +141,10 @@ def home_page(sett):
     new_folder_basename = ("encryption_" if choose == "e" else "decryption_") + Date + "@" + start_time 
     new_folder = os.path.join(os.path.dirname(Files[0]), new_folder_basename)
     os.system(f"mkdir {new_folder}")
-
+ 
+    title = pyfiglet.figlet_format("KEYS", font = "slant", justify="center") if sett["figlet_styled_titles"] else "KEYS"
     # message to be written in the keys file
-    msg = "-"*100 + "\n" + titles[1] + "\n" + "-"*100
+    msg = "-"*100 + "\n" + title + "\n" + "-"*100
     msg += f"\n\nFiles {verb}:\n"
 
 
@@ -189,7 +161,7 @@ def home_page(sett):
 
     for file in Files :
         # ignore the keys file while decrypting
-        if sett["ignore_keys_file_while_decryting"] and os.path.basename(file) == "keys.txt":
+        if os.path.basename(file) in sett["ignore_files_while_decryting"]:
             continue
 
         # if it is a zip file
@@ -200,7 +172,7 @@ def home_page(sett):
             dst = os.path.dirname(file)
             with zipfile.ZipFile(file) as zip :
                 # skip any key file if there
-                inside_files = [ os.path.join(dst, i.filename) for i in zip.filelist if not sett["ignore_keys_file_while_decryting"] or i.filename != "keys.txt"]
+                inside_files = [ os.path.join(dst, i.filename) for i in zip.filelist if i.filename not in sett["ignore_files_while_decryting"]]
                 files += inside_files  # add file paths to the list
                 
                 if zip.infolist()[0].flag_bits :
@@ -216,7 +188,7 @@ def home_page(sett):
             # this will work even if the directory is nested
             for i, _, k in os.walk(file) :
                 # skip any keys file if there
-                inside_files += [os.path.join(i, j) for j in k if not sett["ignore_keys_file_while_decryting"] or j != "keys.txt"]
+                inside_files += [os.path.join(i, j) for j in k if j not in sett["ignore_files_while_decryting"]]
             files += inside_files
 
         else :
@@ -239,49 +211,49 @@ def home_page(sett):
         msg += "\n\nEncryption: " 
     else :
         msg += "\n\nDecryption: " 
-    msg += algos[algo-1]
+    msg += algo
 
     # key management
-    if algo == 1 :
+    if algo == "c" :
         step = int(input("Step: "))
         msg += f"\nStep: {step}\n"
-    if algo in [2, 3, 5]:
+    if algo in ["v", "h", "ct"]:
         key = input("Enter key: ")
         msg += f"\nKey: {key}\n"
 
-    elif algo == 6 and choose == "e":
+    elif algo == "r1" and choose == "e":
         public_key = input("Enter Public key (Format: e, n): ")
         msg += f"\nPublic key: ({public_key})\n"
         public_key = [int(i) for i in public_key.split(",")]
 
-    elif algo in [6, 7] and choose == "d" :
+    elif algo in ["r1", "r2"] and choose == "d" :
         private_key = input("Enter Private key (Format: e, n): ")
         msg += f"\nPrivate key: ({private_key})\n"
         private_key = [int(i) for i in private_key.split(",")]
 
-    if algo == 7 and choose == "e" :
+    if algo == "r2" and choose == "e" :
         # generating a global public and private key
         public_key, private_key = ac.generate_keys()
         msg += f"\nPublic key: {public_key}\nPrivate key: {private_key}\n"
 
     print("\nSTART" + "-"*50)
     for idx, text in enumerate(string) :
-        if algo == 1 :
+        if algo == "c" :
             s = sc.caesar(text, step=step) if choose == "e" else sc.caesar(text, step=step, encrypt=False)
         
-        elif algo == 2 :
+        elif algo == "v" :
             s = sc.vernam(text, key=key) if choose == "e" else sc.vernam(text, key=key, encrypt=False)
 
-        elif algo == 3 :
+        elif algo == "h" :
             s = sc.hill_cipher(text, key=key) if choose == "e" else sc.hill_cipher(text, key=key, decrypt=True)
 
-        elif algo == 4 :
+        elif algo == "kt" :
             s = sc.transposition(text) if choose == "e" else sc.transposition(text, encrypt=False)
 
-        elif algo == 5 :
+        elif algo == "ct" :
             s = sc.transposition(text, key=key) if choose == "e" else sc.transposition(text, key=key, encrypt=False)
 
-        elif algo == 6 :
+        elif algo == "r1" :
             s = ac.RSA(text, public_key=public_key)["cipher"] if choose == "e" else ac.RSA(text, private_key=private_key, decrypt=True)["decipher"]
 
         else :
@@ -296,69 +268,127 @@ def home_page(sett):
     print(f"\nAll files {verb} :)")
 
     # create password protected zip
-    if sett["password_protected_zip"] :
+    if ask is None and sett["password_protected_zip"]:
         ask = input("\nWant to create a password protected zip file (y/N)?\t").lower()
 
-        if ask == "y" :
-            passwd = getpass.getpass("Enter password: ")
+    if ask == "y" :
+        passwd = getpass.getpass("Enter password: ")
 
-            if sett["keep_key_file_inside_zip"] :
-                msg += f"\nEncrypted zipped folder path: {new_folder}.zip"
-                key_file(new_folder, msg, sett=sett, arg=0)
-                #key_file(new_folder, msg, sett["make_key_file_readOnly_by_owner"])
+        if sett["keep_key_file_inside_zip"] :
+            msg += f"\nEncrypted zipped folder path: {new_folder}.zip"
+            key_file(new_folder, msg, protected_keys=protected_keys, sett=sett, arg=0)
 
-            zipped_files = [os.path.join(new_folder, i) for i in files]
-            pyminizip.compress_multiple(new_names, [], new_folder+".zip", passwd, sett["zip_compression_level"])
+        zipped_files = [os.path.join(new_folder, i) for i in files]
+        pyminizip.compress_multiple(new_names, [], new_folder+".zip", passwd, sett["zip_compression_level"])
 
-            print(f"\n{new_folder}.zip created. Don't forget the password. It will not be there in the key file.")
+        print(f"\n{new_folder}.zip created. Don't forget the password. It will not be there in the key file.")
 
-            try :
-                os.system(f"rmdir /Q /S {new_folder}") if os_name == "Windows" else os.system(f"rm -rf {new_folder}")  # delete the new_folder created
-            except :
-                print("Can't remove the unprotected folder. Please make sure to do that manually.")
+        try :
+            os.system(f"rmdir /Q /S {new_folder}") if os_name == "Windows" else os.system(f"rm -rf {new_folder}")  # delete the new_folder created
+        except :
+            print("Can't remove the unprotected folder. Please make sure to do that manually.")
 
-                # if this file cannot be deleted, the new file with the same name cannot be created, so the key file cannot be created.
-                if not sett["keep_key_file_inside_zip"] :
-                    print("Key file creation failed".upper())
-                return 
-
+            # if this file cannot be deleted, the new file with the same name cannot be created, so the key file cannot be created.
             if not sett["keep_key_file_inside_zip"] :
-                # add the path msg
-                msg += f"\nEncrypted folder path: {new_folder}\nProtected zip path: {os.path.join(new_folder, new_folder_basename)}"
+                print("Key file creation failed".upper())
+            return 
+
+        if not sett["keep_key_file_inside_zip"] :
+            # add the path msg
+            msg += f"\nEncrypted folder path: {new_folder}\nProtected zip path: {os.path.join(new_folder, new_folder_basename)}"
+    
+            os.system(f"mkdir {new_folder}")  # create the folder again
+            key_file(new_folder, msg, protected_keys=protected_keys, sett=sett, os_name=os_name, arg=1)
+
+            if os_name == "Windows" :
+                move_cmd, prompt = "move", "/Y"  # prompt is for force moving the files 
+            else :
+                move_cmd, prompt = "mv", ""  
+
+            os.system(f"{move_cmd} {prompt} {new_folder}.zip {new_folder}")
         
-                os.system(f"mkdir {new_folder}")  # create the folder again
-                key_file(new_folder, msg, sett, os_name=os_name, arg=1)
-
-                if os_name == "Windows" :
-                    move_cmd, prompt = "move", "/Y"  # prompt is for force moving the files 
-                else :
-                    move_cmd, prompt = "mv", ""  
-
-                os.system(f"{move_cmd} {prompt} {new_folder}.zip {new_folder}")
-        
-        else:
-            msg += f"\nEncrypted folder path: {new_folder}"
-            # writing the keys file
-            key_file(new_folder, msg, sett, os_name=os_name, arg=1)
-
-
     else:
         msg += f"\nEncrypted folder path: {new_folder}"
         # writing the keys file
-        key_file(new_folder, msg, sett, os_name=os_name, arg=1)
+        key_file(new_folder, msg, protected_keys=protected_keys, sett=sett, os_name=os_name, arg=1)
+
+
+
+def CLT(sett, args) :
+    choose = args[0]
+    algo = args[1]
+
+    steps = 0
+    if "pz" in args :
+        ask = "y"
+        steps += 1
+    else :
+        ask = "n"
+
+    if "pk" in args :
+        protected_keys = "y"
+        steps += 1
+    else :
+        protected_keys = "n"
+        steps += 1
+
+    Files = args[1+1+steps:]
+
+    dictionary = {"choose": choose, "algo": algo, "Files": Files, "ask":ask, "protected_keys": protected_keys}
+    print(dictionary)
+    process(sett, choose, algo, Files, ask, protected_keys)
+
+
+def CLI(sett) :
+    clear()
+
+    # if the titles need to be figlets or not
+    width = os.get_terminal_size().columns
+    title = pyfiglet.figlet_format("CIPHER SUITE", font = "slant", justify="center") if sett["figlet_styled_titles"] else "CIPHER SUITE".center(width)
+    print("-"*width + "\n" + title + "\n" + "-"*width)
+
+    choose = input("\nEncryption(e)/Decryption(d)?\t").lower()
+
+    # getting file names
+    Files = []
+    print("\nFile names: (Enter q to mark end)")
+    while 1 :
+        file_name = input()
+        if file_name in ["q", "Q"] :
+            break
+        Files.append(file_name)
+
+    # getting algorithm
+    algos = ["Caesar", "Vernam", "Hill cipher", "Keyless Transposition", "Column Transposition", "RSA (Your own public key)", "RSA (new key pairs)"]
+    print("\nEncryption Algorithm?")
+    for idx, algo in enumerate(algos) :
+        print(f"{idx+1}. {algo}")
+
+    inpt = int(input("\n\nYour choice:\t")) - 1
+    algorithm = algos[inpt]
+
+    print(f"You chose {algorithm}")
+    algo = ["c", "v", "h", "kt", "ct", "r1", "r2"][inpt]
+
+    process(sett, choose, algo, Files)
+    
 
 
 if __name__ == "__main__":   
 
-    print("\nPACKAGE CHECK\n")
+    cli = False if len(sys.argv) > 1 else True
+
+    if cli :
+        print("\nPACKAGE CHECK\n")
 
     if not package_check() :  # only proceed if all packages are installed
         print("Then how can we proceed further? EXITING...")
         time.sleep(0.5)
         sys.exit(0)
 
-    print("\nAll set.")
-    time.sleep(0.5)
+    if cli :
+        print("\nAll set.")
+        time.sleep(0.5)
 
     import pyminizip 
     import pyfiglet
@@ -366,15 +396,19 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=DeprecationWarning)  # ignore the Deprecation warning raised by pyminizip while uncompressing zip
     dic = settings()
     
-    while 1 :
-        home_page(dic)
+    if not cli :
+        CLT(dic, sys.argv[1:])
 
-        # ask for once more only if multiple_run is toogled on in settings
-        again = "n" if not dic["multiple_runs"] else input(f"\nWant to do more (y/N)?").lower()
+    else :
+        while 1 :
+            CLI(dic)
 
-        if again == "n" :
-            clear()
-            break
+            # ask for once more only if multiple_run is toogled on in settings
+            again = "n" if not dic["multiple_runs"] else input(f"\nWant to do more (y/N)?").lower()
+
+            if again == "n" :
+                clear()
+                break
 
     
 
