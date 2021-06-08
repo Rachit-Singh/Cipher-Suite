@@ -54,6 +54,7 @@ def settings() :
     # if the program is run for the first time and there is no settings file
     if not os.path.exists(setting_file_name) :
         setting_dic = {   
+            "web-browser" : "msedge" if platform.system() == "Windows" else "firefox",
             "multiple_runs" : True,
             "figlet_styled_titles" : True,
             "password_protected_zip" : True,
@@ -315,7 +316,6 @@ def process(sett, choose, algo, Files, key=None, ask=None, protected_keys=None):
         key_file(new_folder, msg, protected_keys=protected_keys, sett=sett, os_name=os_name, arg=1)
 
 
-
 def CLT(sett, args) :
     choose = args[0]
     algo = args[1]
@@ -377,6 +377,23 @@ def CLI(sett) :
     process(sett, choose, algo, Files)
     
 
+def help(sett) :
+    # create an HTML file from README.md file
+    help_path = os.path.join(os.getcwd(), "help.html")
+    with open(os.path.join(os.path.dirname(os.getcwd()), "README.md"), "r") as f1 :
+        with open(help_path, "w") as f2 :
+            f2.write(f1.read())
+    
+    # display the HTML file in the browser
+    if platform.system() == "Windows" :
+        s, d = "start", "del"
+    else :
+        s, d = "", "rm"
+
+    os.system(f'{s} {sett["web-browser"]} {help_path}')
+    time.sleep(1)
+    os.system(f'{d} {help_path}'.strip()) 
+
 
 if __name__ == "__main__":   
 
@@ -400,7 +417,10 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=DeprecationWarning)  # ignore the Deprecation warning raised by pyminizip while uncompressing zip
     dic = settings()
     
-    if not cli :
+    if sys.argv[1].lower() == "help" :
+        help(dic)
+
+    elif not cli :
         CLT(dic, sys.argv[1:])
 
     else :

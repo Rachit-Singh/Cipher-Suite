@@ -1,14 +1,1 @@
-{
-    "multiple_runs": true, 
-    "figlet_styled_titles" : true,
-    "password_protected_zip": true, 
-    "zip_compression_level": 5, 
-    "ignore_files_while_decryting": ["keys.txt", "obfuscate.bat"], 
-    "make_key_file_readOnly_by_owner" : true,
-    
-    "__comment1__": "Below setting currently only works on Windows", 
-    "password_protect_the_key_file": true, 
-    
-    "__comment__": "Below setting are only applicable if you are planning to work with a zip file", 
-    "keep_key_file_inside_zip": false
-}
+{"web-browser": "msedge", "multiple_runs": true, "figlet_styled_titles": true, "password_protected_zip": true, "zip_compression_level": 5, "ignore_files_while_decryting": ["keys.txt", "obfuscate.bat"], "make_key_file_readOnly_by_owner": true, "__comment1__": "Below setting currently only works on Windows", "password_protect_the_key_file": true, "__comment__": "Below setting are only applicable if you are planning to work with a zip file", "keep_key_file_inside_zip": false}
