@@ -128,7 +128,7 @@ def key_file(new_folder, msg, protected_keys=None, sett=None, os_name="Windows",
             os.chmod(keys_path, stat.S_IREAD)
 
 
-def process(sett, choose, algo, Files, ask=None, protected_keys=None):
+def process(sett, choose, algo, Files, key=None, ask=None, protected_keys=None):
     os_name = platform.system()
 
     verb = "encrypted" if choose == "e" else "decrypted"   # for displaying message
@@ -206,28 +206,30 @@ def process(sett, choose, algo, Files, ask=None, protected_keys=None):
             base = re.sub(r"(.*)\.(.*)", f"\\1_{verb}.\\2", base)  # new name of files
             new_names.append(os.path.join(new_folder, base))   # making the absolute filepath
 
-
+    
+    algo_dict = {"c" : "Caesar", "v" : "Vernam", "h" : "Hill cipher", "kt" : "Keyless Transposition", "ct" : "Column Transposition", 
+    "r1" : "RSA (Your own public key)", "r2" : "RSA (new key pairs)"}
     if  choose == "e" :
         msg += "\n\nEncryption: " 
     else :
         msg += "\n\nDecryption: " 
-    msg += algo
+    msg += algo_dict[algo]
 
     # key management
     if algo == "c" :
-        step = int(input("Step: "))
+        step = int(input("Step: ")) if key is None else int(key)
         msg += f"\nStep: {step}\n"
     if algo in ["v", "h", "ct"]:
-        key = input("Enter key: ")
+        key = input("Enter key: ") if key is None else key
         msg += f"\nKey: {key}\n"
 
     elif algo == "r1" and choose == "e":
-        public_key = input("Enter Public key (Format: e, n): ")
+        public_key = input("Enter Public key (Format: e, n): ") if key is None else key
         msg += f"\nPublic key: ({public_key})\n"
         public_key = [int(i) for i in public_key.split(",")]
 
     elif algo in ["r1", "r2"] and choose == "d" :
-        private_key = input("Enter Private key (Format: e, n): ")
+        private_key = input("Enter Private key (Format: e, n): ") if key is None else key
         msg += f"\nPrivate key: ({private_key})\n"
         private_key = [int(i) for i in private_key.split(",")]
 
@@ -272,7 +274,7 @@ def process(sett, choose, algo, Files, ask=None, protected_keys=None):
         ask = input("\nWant to create a password protected zip file (y/N)?\t").lower()
 
     if ask == "y" :
-        passwd = getpass.getpass("Enter password: ")
+        passwd = getpass.getpass("Enter password for zip: ")
 
         if sett["keep_key_file_inside_zip"] :
             msg += f"\nEncrypted zipped folder path: {new_folder}.zip"
@@ -319,6 +321,10 @@ def CLT(sett, args) :
     algo = args[1]
 
     steps = 0
+    if algo not in ["kt", "r2"] :
+        key = args[2]
+        steps += 1
+        
     if "pz" in args :
         ask = "y"
         steps += 1
@@ -334,9 +340,7 @@ def CLT(sett, args) :
 
     Files = args[1+1+steps:]
 
-    dictionary = {"choose": choose, "algo": algo, "Files": Files, "ask":ask, "protected_keys": protected_keys}
-    print(dictionary)
-    process(sett, choose, algo, Files, ask, protected_keys)
+    process(sett, choose, algo, Files, key, ask, protected_keys)
 
 
 def CLI(sett) :
