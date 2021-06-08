@@ -37,6 +37,7 @@ A CLI for performing encryption on local files
   <li>The keys file is by default made read-only to avoid any accidental changes.</li>
   <li>The batch file created for locking/unlocking keys file is obfuscated automatically to prevent anyone from reading the password.</li>
   <li>A settings file is also there which has several parameters you can tweak with. It's in a simple JSON format so is highly readable. Even if you delete the settings file, it will be generated again with the default settings. Enjoy.</li>
+  <li>Settings file is created when you run the program for the first time. Settings file is not provided out of the box because some settings are OS dependent and will be initilazed when you run the program for the first time. </li>
 </ul>
 
 <h3>Command line tool</h3>
@@ -49,6 +50,7 @@ $ path/to/cipher-suite.py [options ....] [File(s)]
 <br> <br>
 <b>Options</b>
 <ol>
+  <li>help : stuck anywhere? opens this README file in your favorite browser. (Defaults: Edge for Windows and Firefox for Linux)
   <li>e/d : encryption/decryption </li>
   <li>c/v/h/kt/ct/r1/r2 : Caesar/Vernam/Hill/Keyless Transposition/Column Transposition/RSA (with personal public key)/RSA (for new key pairs) 
     <br> Provide key as the next argument. For RSA, provide key in the format (e, n) or (d, n) {with round brackets on}
