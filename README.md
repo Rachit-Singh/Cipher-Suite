@@ -50,10 +50,12 @@ $ path/to/cipher-suite.py [options ....] [File(s)]
 <b>Options</b>
 <ol>
   <li>e/d : encryption/decryption </li>
-  <li>c/v/h/kt/ct/r1/r2 : Caesar/Vernam/Hill/Keyless Transposition/Column Transposition/RSA (with personal public key)/RSA (for new key pairs) </li>
+  <li>c/v/h/kt/ct/r1/r2 : Caesar/Vernam/Hill/Keyless Transposition/Column Transposition/RSA (with personal public key)/RSA (for new key pairs) 
+    <br> Provide key as the next argument. For RSA, provide key in the format (e, n) or (d, n) {with round brackets on}
+  </li>
   <li>pz : create a password protected zip </li>
   <li>pk : password protect the key file </li>
 </ol>
-<i>NOTE: </i> Follow the order strictly <br> <br>
+<i>NOTE: </i> Follow the order strictly. There must be a blank space between two options. <br> <br>
 
 <p>I made this just for fun. Had a lot of time to kill after placements and was bored to death watching YouTube. So the code is not highly optimized and may look like a spaghetti code. I highly appreciate if you can expand on this idea. I personally found this pretty cool.</p>
