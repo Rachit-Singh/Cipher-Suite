@@ -1,4 +1,15 @@
 import numpy as np
+import os
+import platform
+
+try :
+    import Crypto
+except ImportError:
+    os.system("pip install pycryptodome") if platform.system() == "Windows" else os.system("pip3 install pycryptodome")
+
+from Crypto.Cipher import AES
+from string import ascii_letters, digits, punctuation
+import random
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # SYMMETRIC CIPHERS
@@ -139,3 +150,72 @@ def hill_cipher(text, key=None, decrypt=False) :
 
     return cipher if decrypt else {'key': ''.join(key), 'cipher' : cipher} 
 
+
+# AES --------------------------------------------------------------------------------------------------
+def make_key_AES(BLOCK_SIZE=16) :
+    """
+    Generate key for performing AES encryption
+    INPUT -->
+        BLOCK_SIZE : int = 16 -> size of the key to be generated (in bytes)
+    OUTPUT -->
+        key : String -> the key generated
+    """
+    characters = (ascii_letters + digits + punctuation).replace("\\", "")   # these \ are pain in the ass 
+    return "".join([random.choice(characters) for _ in range(BLOCK_SIZE)])
+
+
+def aes(text, key, nonce=None, tag=None, encrypt=True) :
+    """
+    Performs AES encryption/decryption
+    INPUT -->
+        text : String/ByteString -> The string to encrypt, or a bytestring to decrypt
+        key : String -> key to be used 
+        nonce : ByteString = None-> for decryption
+        tag : ByteString = None -> for checking if the key used is correct or if the message is corrupted
+        encrypt : Bool = True -> True if encryption, False if decryption
+        
+    OUTPUT -->
+        if encryption :
+            ciphertext : ByteString -> the encrypted text
+            encryption_suite : dict -> 
+                key : String -> key used for encryption
+                nonce : ByteString -> generated from encryption
+                tag : ByteString -> generated from encryption
+
+        if decryption :
+            result : dict ->
+                decipher : String -> the decrypted text or 'Key incorrect or message corrupted' if the ciphered text was corrupted
+                authentic : Bool -> True if the ciphered text was authentic and the key was correct, False otherwise
+    """
+    if encrypt :
+        # only 16, 24 and 32 byte keys work
+        BLOCK_SIZE = [16, 24, 32]
+        length = len(key)
+        # if it is not a perfect size
+        if length not in BLOCK_SIZE :
+            for i in BLOCK_SIZE :
+                if length <= i :
+                    key += ( i - length % i )* chr(i - length % i)
+                    break
+         
+        key = key[:32] # if key is larger than 32 bytes
+        
+        data = text.encode()  # convert to bytestring
+        cipher = AES.new(key.encode(), AES.MODE_EAX)
+
+        nonce = cipher.nonce
+        ciphertext, tag = cipher.encrypt_and_digest(data)
+        
+        return (ciphertext, {"key" : key, "nonce" : nonce, "tag" : tag})
+
+    else :
+        assert nonce is not None , "Nonce must be provided"
+        assert tag is not None, "Tag must be provided"
+
+        cipher = AES.new(key.encode(), AES.MODE_EAX, nonce=nonce)
+        plaintext = cipher.decrypt(text)
+        try:
+            cipher.verify(tag)
+            return {"decipher" : plaintext.decode("utf-8"), "authentic" : True}
+        except ValueError:
+            return {"decipher" : "Key incorrect or message corrupted.", "authentic" : False}

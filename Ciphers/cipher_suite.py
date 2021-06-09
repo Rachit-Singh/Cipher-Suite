@@ -8,7 +8,6 @@ import getpass
 import time
 import warnings
 
-# self created modules
 import symmetric_cipher as sc
 import assymetric_cipher as ac
 
@@ -35,10 +34,11 @@ def package_check() :
     except ImportError:
         count += 1
         packs += " pyfiglet "
-    
+
+    pip = "pip" if platform.system() == "Windows" else "pip3"
     if count > 0 :
         if input(f"{count} packages ({packs}) need to be installed. Install (y/N)?\t").lower() == "y" :
-            os.system(f"pip install {packs.strip()}")
+            os.system(f"{pip} install {packs.strip()}")
             count = 0
         else :
             return 0
@@ -59,7 +59,7 @@ def settings() :
             "figlet_styled_titles" : True,
             "password_protected_zip" : True,
             "zip_compression_level" : 5,
-            "ignore_files_while_decryting": ["keys.txt", "obfuscate.bat"], 
+            "ignore_files_while_decryting": ["keys.txt", "obfuscate.bat", "lock_unlock_keys.obf.bat"], 
             "make_key_file_readOnly_by_owner" : True,
 
             "__comment1__" : "Below setting currently only works on Windows",
@@ -120,6 +120,13 @@ def key_file(new_folder, msg, protected_keys=None, sett=None, os_name="Windows",
 
             # make the file readOnly by owner
             print("Keys file protected in the Locker folder. Access it by running 'lock_unlock_keys.obf.bat' file and entering the password provided")
+
+        else :
+            keys_path = os.path.join(new_folder, "keys.txt")
+            with open(keys_path, "w") as f :
+                f.write(msg)
+            if sett["make_key_file_readOnly_by_owner"] :
+                os.chmod(keys_path, stat.S_IREAD)
 
     else :
         keys_path = os.path.join(new_folder, "keys.txt")
@@ -197,8 +204,14 @@ def process(sett, choose, algo, Files, key=None, ask=None, protected_keys=None):
 
         # now reading all the files one by one
         for i in inside_files :
-            with open(i, encoding="utf-8") as f :
-                string.append(f.read())
+            # if AES decryption, file will be binary 
+            if algo in ["a1","a2"] and choose == "d" :
+                with open(i, "rb") as f :
+                    string.append(f.read())
+            # for everyone else, file will be normal text file
+            else :
+                with open(i, encoding="utf-8") as f :
+                    string.append(f.read())
             msg += i + "\n"  # adding file name to the message
 
             # name formation
@@ -208,8 +221,8 @@ def process(sett, choose, algo, Files, key=None, ask=None, protected_keys=None):
             new_names.append(os.path.join(new_folder, base))   # making the absolute filepath
 
     
-    algo_dict = {"c" : "Caesar", "v" : "Vernam", "h" : "Hill cipher", "kt" : "Keyless Transposition", "ct" : "Column Transposition", 
-    "r1" : "RSA (Your own public key)", "r2" : "RSA (new key pairs)"}
+    algo_dict = {"c" : "Caesar", "v" : "Vernam", "h" : "Hill cipher", "kt" : "Keyless Transposition", "ct" : "Column Transposition", "a1" : "AES (Your own key)", 
+    "a2" : "AES (random key)", "r1" : "RSA (Your own public key)", "r2" : "RSA (new key pairs)"}
     if  choose == "e" :
         msg += "\n\nEncryption: " 
     else :
@@ -220,8 +233,13 @@ def process(sett, choose, algo, Files, key=None, ask=None, protected_keys=None):
     if algo == "c" :
         step = int(input("Step: ")) if key is None else int(key)
         msg += f"\nStep: {step}\n"
-    if algo in ["v", "h", "ct"]:
+
+    elif (algo in ["v", "h", "ct", "a1"]) or (algo == "a2" and choose=="d"):
         key = input("Enter key: ") if key is None else key
+        msg += f"\nKey: {key}\n"
+
+    elif algo == "a2" and choose == "e" :
+        key = sc.make_key_AES() if key is None else key
         msg += f"\nKey: {key}\n"
 
     elif algo == "r1" and choose == "e":
@@ -234,13 +252,14 @@ def process(sett, choose, algo, Files, key=None, ask=None, protected_keys=None):
         msg += f"\nPrivate key: ({private_key})\n"
         private_key = [int(i) for i in private_key.split(",")]
 
-    if algo == "r2" and choose == "e" :
+    elif algo == "r2" and choose == "e" :
         # generating a global public and private key
         public_key, private_key = ac.generate_keys()
         msg += f"\nPublic key: {public_key}\nPrivate key: {private_key}\n"
 
     print("\nSTART" + "-"*50)
     for idx, text in enumerate(string) :
+        printing_msg = f"{basenames[idx]} {verb}."
         if algo == "c" :
             s = sc.caesar(text, step=step) if choose == "e" else sc.caesar(text, step=step, encrypt=False)
         
@@ -256,16 +275,32 @@ def process(sett, choose, algo, Files, key=None, ask=None, protected_keys=None):
         elif algo == "ct" :
             s = sc.transposition(text, key=key) if choose == "e" else sc.transposition(text, key=key, encrypt=False)
 
+        elif algo in ["a1", "a2"] :
+            if choose == "e" :
+                temp, dic = sc.aes(text, key=key) 
+                s = dic["nonce"] + b"," + dic["tag"] + b"," + temp   # combining all the info in the encrypted text so it becomes easy to access it while decryption
+            else :
+                lst = text.split(b",") 
+                dic = sc.aes(lst[2], key=key, nonce=lst[0], tag=lst[1], encrypt=False)
+                s = dic["decipher"]
+                if not dic["authentic"]:
+                    printing_msg = f'{basenames[idx]} : {dic["decipher"]}'
+
         elif algo == "r1" :
             s = ac.RSA(text, public_key=public_key)["cipher"] if choose == "e" else ac.RSA(text, private_key=private_key, decrypt=True)["decipher"]
 
         else :
             s = ac.RSA(text, public_key=public_key, private_key=private_key)["cipher"] if choose == "e" else ac.RSA(text, private_key=private_key, decrypt=True)["decipher"]
 
-        with open(new_names[idx], "w", encoding="utf-8") as f :
+        # AES encrypted file is binary
+        if algo in ["a1", "a2"] and choose == "e" :
+            with open(new_names[idx], "wb") as f :
                 f.write(s)
+        else :
+            with open(new_names[idx], "w", encoding="utf-8") as f :
+                    f.write(s)
 
-        print(f"{basenames[idx]} {verb}.")
+        print(printing_msg)
 
     print("END"+"-"*50)
     print(f"\nAll files {verb} :)")
@@ -320,8 +355,8 @@ def CLT(sett, args) :
     choose = args[0]
     algo = args[1]
 
-    steps = 0
-    if algo not in ["kt", "r2"] :
+    steps, key = 0, None
+    if (algo != "kt") and not (algo in ["r2","a2"] and choose != "e") :
         key = args[2]
         steps += 1
         
@@ -336,7 +371,6 @@ def CLT(sett, args) :
         steps += 1
     else :
         protected_keys = "n"
-        steps += 1
 
     Files = args[1+1+steps:]
 
@@ -363,7 +397,8 @@ def CLI(sett) :
         Files.append(file_name)
 
     # getting algorithm
-    algos = ["Caesar", "Vernam", "Hill cipher", "Keyless Transposition", "Column Transposition", "RSA (Your own public key)", "RSA (new key pairs)"]
+    algos = ["Caesar", "Vernam", "Hill cipher", "Keyless Transposition", "Column Transposition", "AES (Your own key)", 
+             "AES (random key)", "RSA (Your own public key)", "RSA (new key pairs)"]
     print("\nEncryption Algorithm?")
     for idx, algo in enumerate(algos) :
         print(f"{idx+1}. {algo}")
@@ -372,7 +407,7 @@ def CLI(sett) :
     algorithm = algos[inpt]
 
     print(f"You chose {algorithm}")
-    algo = ["c", "v", "h", "kt", "ct", "r1", "r2"][inpt]
+    algo = ["c", "v", "h", "kt", "ct", "a1", "a2", "r1", "r2"][inpt]
 
     process(sett, choose, algo, Files)
     
@@ -393,6 +428,7 @@ def help(sett) :
     os.system(f'{s} {sett["web-browser"]} {help_path}')
     time.sleep(1)
     os.system(f'{d} {help_path}'.strip()) 
+
 
 
 if __name__ == "__main__":   
@@ -417,11 +453,12 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=DeprecationWarning)  # ignore the Deprecation warning raised by pyminizip while uncompressing zip
     dic = settings()
     
-    if sys.argv[1].lower() == "help" :
-        help(dic)
 
-    elif not cli :
-        CLT(dic, sys.argv[1:])
+    if not cli :
+        if sys.argv[1].lower() == "help" :
+            help(dic)
+        else :
+            CLT(dic, sys.argv[1:])
 
     else :
         while 1 :
@@ -433,6 +470,3 @@ if __name__ == "__main__":
             if again == "n" :
                 clear()
                 break
-
-    
-
