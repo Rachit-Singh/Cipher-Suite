@@ -9,6 +9,7 @@ A CLI for performing encryption on local files
     <li>Vernam cipher</li>
     <li>Hill cipher</li>
     <li>Keyless/Column Transposition cipher</li>
+    <li>AES</li>
     <li>RSA</li>
   </ul>
 </p>
@@ -52,8 +53,8 @@ $ path/to/cipher-suite.py [options ....] [File(s)]
 <ol>
   <li>help : stuck anywhere? opens this README file in your favorite browser. (Defaults: Edge for Windows and Firefox for Linux)
   <li>e/d : encryption/decryption </li>
-  <li>c/v/h/kt/ct/r1/r2 : Caesar/Vernam/Hill/Keyless Transposition/Column Transposition/RSA (with personal public key)/RSA (for new key pairs) 
-    <br> Provide key as the next argument. For RSA, provide key in the format (e, n) or (d, n) {with round brackets on}
+  <li>c/v/h/kt/ct/a1/a2/r1/r2 : Caesar/Vernam/Hill/Keyless Transposition/Column Transposition/AES (Your own key)/AES (random key)/RSA (with personal public key)/RSA (for new key pairs) 
+    <br> Provide key as the next argument. For RSA, provide key in the format (e, n) or (d, n) {without round brackets and any spaces in between}
   </li>
   <li>pz : create a password protected zip </li>
   <li>pk : password protect the key file </li>
